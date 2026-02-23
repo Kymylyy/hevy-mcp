@@ -1,27 +1,49 @@
 from __future__ import annotations
 
-import json
-import sys
 import time
-from collections.abc import Callable
-from datetime import timedelta
+from collections.abc import Callable, Mapping
+from datetime import datetime, timedelta
 from difflib import SequenceMatcher
-from typing import Any, cast
+from typing import Any, Protocol, cast
 
 from .cache import TTLCache
-from .client import HevyApiClient
 from .config import HISTORY_TTL_SECONDS, SEARCH_TTL_SECONDS, TEMPLATES_TTL_SECONDS
-from .errors import HevyMcpError, UpstreamServerError, ValidationError
+from .errors import HevyMcpError, UpstreamServerError
 from .response import render_error
+from .telemetry import ToolEventLogger
 from .utils import normalize_text, utc_now
+from .validation import validate_days, validate_name, validate_weeks
+
+
+class HevyClientProtocol(Protocol):
+    request_count: int
+
+    def paginate(
+        self,
+        path: str,
+        key: str,
+        page_size: int,
+        params: Mapping[str, Any] | None = None,
+    ) -> list[dict[str, Any]]: ...
+
+    def get_exercise_history(self, template_id: str) -> list[dict[str, Any]]: ...
+
+    def get_workouts_since(self, start_time: datetime) -> list[dict[str, Any]]: ...
+
+    def get_routine_folders(self) -> list[dict[str, Any]]: ...
 
 
 class HevyService:
-    def __init__(self, client: HevyApiClient) -> None:
+    def __init__(
+        self,
+        client: HevyClientProtocol,
+        event_logger: ToolEventLogger | None = None,
+    ) -> None:
         self.client = client
         self._templates_cache = TTLCache()
         self._history_cache = TTLCache()
         self._search_cache = TTLCache()
+        self._event_logger = event_logger or ToolEventLogger()
         self.cache_hits = 0
 
     def execute(self, tool_name: str, fn: Callable[..., str], *args: Any) -> str:
@@ -46,7 +68,13 @@ class HevyService:
         finally:
             duration_ms = int((time.perf_counter() - started) * 1000)
             request_delta = self.client.request_count - req_before
-            self._log_tool_call(tool_name, duration_ms, request_delta, self.cache_hits, status)
+            self._event_logger.log_tool_call(
+                tool_name=tool_name,
+                duration_ms=duration_ms,
+                http_calls=request_delta,
+                cache_hits=self.cache_hits,
+                result_status=status,
+            )
 
     def load_templates(self) -> list[dict[str, Any]]:
         cached = self._templates_cache.get("all")
@@ -137,48 +165,12 @@ class HevyService:
 
     @staticmethod
     def validate_name(value: Any) -> str:
-        if not isinstance(value, str):
-            raise ValidationError("name must be a string.", "Pass a non-empty exercise name.")
-        cleaned = value.strip()
-        if len(cleaned) < 2:
-            raise ValidationError("name is too short.", "Provide at least two characters.")
-        return cleaned
+        return validate_name(value)
 
     @staticmethod
     def validate_days(value: Any) -> int:
-        if not isinstance(value, int):
-            raise ValidationError("days must be an integer.", "Use an integer between 1 and 365.")
-        if value < 1 or value > 365:
-            raise ValidationError(
-                "days must be in range 1..365.",
-                "Choose a value between 1 and 365.",
-            )
-        return value
+        return validate_days(value)
 
     @staticmethod
     def validate_weeks(value: Any) -> int:
-        if not isinstance(value, int):
-            raise ValidationError("weeks must be an integer.", "Use an integer between 1 and 52.")
-        if value < 1 or value > 52:
-            raise ValidationError(
-                "weeks must be in range 1..52.",
-                "Choose a value between 1 and 52.",
-            )
-        return value
-
-    @staticmethod
-    def _log_tool_call(
-        tool_name: str,
-        duration_ms: int,
-        http_calls: int,
-        cache_hits: int,
-        result_status: str,
-    ) -> None:
-        event = {
-            "tool_name": tool_name,
-            "duration_ms": duration_ms,
-            "http_calls": http_calls,
-            "cache_hits": cache_hits,
-            "result_status": result_status,
-        }
-        print(json.dumps(event), file=sys.stderr, flush=True)
+        return validate_weeks(value)

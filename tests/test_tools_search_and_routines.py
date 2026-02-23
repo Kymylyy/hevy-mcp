@@ -39,6 +39,9 @@ class SearchAndRoutineClient:
     def get_workouts_since(self, _start: datetime) -> list[dict[str, Any]]:
         return self.workouts
 
+    def get_exercise_history(self, _template_id: str) -> list[dict[str, Any]]:
+        return []
+
     def get_routine_folders(self) -> list[dict[str, Any]]:
         return [{"id": "folder-1", "title": "Strength"}]
 
@@ -70,7 +73,7 @@ def test_search_exercise_boosts_templates_from_recent_history() -> None:
         ],
         routines=[],
     )
-    service = HevyService(client=client)  # type: ignore[arg-type]
+    service = HevyService(client=client)
 
     output = search_exercise(service, "squat")
 
@@ -116,7 +119,7 @@ def test_get_routines_includes_set_schemes_per_exercise() -> None:
             }
         ],
     )
-    service = HevyService(client=client)  # type: ignore[arg-type]
+    service = HevyService(client=client)
 
     output = get_routines(service)
 

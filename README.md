@@ -1,6 +1,10 @@
 # hevy-mcp
 
-MCP server for personal Hevy training analytics.
+[![CI](https://github.com/Kymylyy/hevy-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/Kymylyy/hevy-mcp/actions/workflows/ci.yml)
+
+`hevy-mcp` is a read-only MCP server for Hevy training analytics.
+It exposes focused tools for exercise search, progression analysis, workout summaries,
+volume distribution, fatigue signals, accessory suggestions, training logging, and routine inspection.
 
 ## Features
 
@@ -13,42 +17,35 @@ MCP server for personal Hevy training analytics.
 - `training_log(days=30)`
 - `get_routines()`
 
-All tools return markdown with a stable response structure:
+All tools return markdown with a stable section contract:
 
 - `## Summary`
 - `## Data Window`
 - `## Details`
 - `## Notes`
 
-## Setup
+## Requirements
+
+- Python 3.11+
+- Hevy API key
+
+## Quickstart
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e .[dev]
-```
-
-Set API key in environment:
-
-```bash
 export HEVY_API_KEY="your-key"
+hevy-mcp
 ```
 
-Or keep it in local `.env` (ignored by git):
-
-```bash
-set -a
-source .env
-set +a
-```
-
-Run MCP server:
+You can also run:
 
 ```bash
 python3 run_hevy_mcp.py
 ```
 
-## Claude Desktop / Claude Code config
+## MCP Configuration Example
 
 ```json
 {
@@ -64,7 +61,16 @@ python3 run_hevy_mcp.py
 }
 ```
 
-## Development checks
+## Constraints
+
+- Read-only integration (GET-oriented API usage).
+- Input guards:
+  - `days`: `1..365`
+  - `weeks`: `1..52`
+  - `name`: minimum 2 characters
+- Fuzzy matching uses `difflib` (no external fuzzy dependency).
+
+## Development
 
 Run checks in this order:
 
@@ -74,10 +80,13 @@ python3 -m mypy src tests
 python3 -m pytest
 ```
 
-## Notes
+GitHub Actions runs these checks on `push` and `pull_request`.
 
-- Server is read-only (GET endpoints only).
-- Secrets are loaded from environment; do not commit local API key files.
-- Fuzzy matching uses Python `difflib` to avoid extra runtime dependencies.
-- `search_exercise` boosts matches for exercises seen in recent workout history.
-- `get_routines` includes per-exercise set schemes (set type, reps/load, RIR/rest when available).
+## Security
+
+If you find a security issue, follow `/SECURITY.md`.
+Do not open public issues for secrets or vulnerabilities.
+
+## License
+
+MIT. See `/LICENSE`.

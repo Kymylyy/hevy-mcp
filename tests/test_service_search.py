@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from datetime import datetime
 from typing import Any
 
 from hevy_mcp.service import HevyService
@@ -21,6 +24,15 @@ class StubClient:
         self.request_count += 1
         return self.templates
 
+    def get_exercise_history(self, _template_id: str) -> list[dict[str, Any]]:
+        return []
+
+    def get_workouts_since(self, _start_time: datetime) -> list[dict[str, Any]]:
+        return []
+
+    def get_routine_folders(self) -> list[dict[str, Any]]:
+        return []
+
 
 def test_rank_templates_prefers_exact_then_contains_then_fuzzy() -> None:
     client = StubClient(
@@ -31,7 +43,7 @@ def test_rank_templates_prefers_exact_then_contains_then_fuzzy() -> None:
             {"id": "4", "title": "Bench Press"},
         ]
     )
-    service = HevyService(client=client)  # type: ignore[arg-type]
+    service = HevyService(client=client)
 
     matches = service.rank_templates("squat (barbell)")
     assert matches[0]["title"] == "Squat (Barbell)"
@@ -42,7 +54,7 @@ def test_rank_templates_prefers_exact_then_contains_then_fuzzy() -> None:
 
 def test_rank_templates_uses_cache_on_repeated_query() -> None:
     client = StubClient([{"id": "1", "title": "Shoulder Press"}])
-    service = HevyService(client=client)  # type: ignore[arg-type]
+    service = HevyService(client=client)
 
     first = service.rank_templates("shoulder")
     second = service.rank_templates("shoulder")

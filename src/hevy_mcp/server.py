@@ -19,9 +19,11 @@ from .tools import (
 )
 
 try:
-    from fastmcp import FastMCP
+    from fastmcp import FastMCP as _FastMCP
 except ModuleNotFoundError:  # pragma: no cover
-    FastMCP = None
+    FastMCP: Any = None
+else:
+    FastMCP = _FastMCP
 
 
 _SERVICE: HevyService | None = None

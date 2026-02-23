@@ -1,0 +1,15 @@
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+*.py[cod]
+*.egg-info/
+.DS_Store
+api-key
+.env
+.env.*
+!.env.example
+.mcp.json
+hevy-mcp-plan.md
+.claude/

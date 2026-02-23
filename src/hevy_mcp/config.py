@@ -1,0 +1,15 @@
+from __future__ import annotations
+
+BASE_URL = "https://api.hevyapp.com/v1"
+MAX_RETRIES = 3
+RETRY_DELAYS = (0.5, 1.0, 2.0)
+WORKING_SET_TYPES = frozenset({"normal", "failure", "dropset"})
+
+TEMPLATES_TTL_SECONDS = 12 * 60 * 60
+SEARCH_TTL_SECONDS = 12 * 60 * 60
+HISTORY_TTL_SECONDS = 5 * 60
+
+MAX_WORKOUT_ROWS_OUTPUT = 20
+MAX_ROUTINE_EXERCISES_OUTPUT = 12
+SEARCH_MATCH_CANDIDATES = 25
+SEARCH_HISTORY_LOOKBACK_DAYS = 120

@@ -4,20 +4,40 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hevy-mcp"
-version = "0.1.0"
-description = "Personal Hevy MCP server with analysis-focused tools"
+version = "1.0.0"
+description = "Read-only MCP server for Hevy training analytics"
 readme = "README.md"
 requires-python = ">=3.11"
+license = "MIT"
+authors = [
+  { name = "Kymylyy" },
+]
+keywords = ["mcp", "hevy", "fitness", "analytics", "training"]
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Software Development :: Libraries",
+]
 dependencies = [
   "fastmcp>=2.0.0",
   "httpx>=0.28.0",
 ]
 
+[project.urls]
+Homepage = "https://github.com/Kymylyy/hevy-mcp"
+Repository = "https://github.com/Kymylyy/hevy-mcp"
+Issues = "https://github.com/Kymylyy/hevy-mcp/issues"
+
 [project.optional-dependencies]
 dev = [
+  "build>=1.2.2",
   "mypy>=1.19.0",
   "pytest>=8.4.0",
   "ruff>=0.15.0",
+  "twine>=6.1.0",
 ]
 
 [project.scripts]

@@ -107,3 +107,7 @@ def create_mcp_server() -> Any:
 def main() -> None:
     server = create_mcp_server()
     server.run()
+
+
+if __name__ == "__main__":
+    main()

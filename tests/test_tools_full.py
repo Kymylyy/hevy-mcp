@@ -180,6 +180,33 @@ def test_recent_workouts_success() -> None:
     assert "Bench Press" in output
 
 
+def test_recent_workouts_ignores_none_description_and_notes() -> None:
+    workouts = [
+        {
+            "id": "w1",
+            "title": "Upper",
+            "description": None,
+            "start_time": _iso_days_ago(1, minutes=70),
+            "end_time": _iso_days_ago(1),
+            "exercises": [
+                {
+                    "title": "Bench Press",
+                    "notes": None,
+                    "sets": [
+                        {"type": "normal", "weight_kg": 100, "reps": 5},
+                    ],
+                }
+            ],
+        }
+    ]
+    service = HevyService(client=ToolClient(workouts=workouts))
+
+    output = recent_workouts(service, days=7)
+
+    assert "(None)" not in output
+    assert "[None]" not in output
+
+
 def test_recent_workouts_raises_when_empty() -> None:
     service = HevyService(client=ToolClient(workouts=[]))
 

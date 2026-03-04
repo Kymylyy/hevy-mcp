@@ -44,6 +44,7 @@ class HevyService:
         self._history_cache = TTLCache()
         self._search_cache = TTLCache()
         self._workout_descriptions: dict[str, str] = {}
+        self._workout_descriptions_since: datetime | None = None
         self._event_logger = event_logger or ToolEventLogger()
         self.cache_hits = 0
 
@@ -171,14 +172,26 @@ class HevyService:
             if wid and isinstance(desc, str) and desc.strip():
                 self._workout_descriptions[wid] = desc.strip()
 
+    def cache_workout_descriptions_since(
+        self,
+        start: datetime,
+        workouts: list[dict[str, Any]],
+    ) -> None:
+        self.cache_workout_descriptions(workouts)
+        if self._workout_descriptions_since is None or start < self._workout_descriptions_since:
+            self._workout_descriptions_since = start
+
     def get_workout_description(self, workout_id: str) -> str:
         return self._workout_descriptions.get(workout_id, "")
 
     def load_workout_descriptions_since(self, start: datetime) -> None:
-        if self._workout_descriptions:
+        if (
+            self._workout_descriptions_since is not None
+            and start >= self._workout_descriptions_since
+        ):
             return
         workouts = self.client.get_workouts_since(start)
-        self.cache_workout_descriptions(workouts)
+        self.cache_workout_descriptions_since(start, workouts)
 
     @staticmethod
     def validate_name(value: Any) -> str:

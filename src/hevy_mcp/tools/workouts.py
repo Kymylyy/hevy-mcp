@@ -23,7 +23,7 @@ def recent_workouts(service: HevyService, days: int = 7) -> str:
     now = utc_now()
     start = now - timedelta(days=requested_days)
     workouts = service.client.get_workouts_since(start)
-    service.cache_workout_descriptions(workouts)
+    service.cache_workout_descriptions_since(start, workouts)
     if not workouts:
         raise NoDataError(
             "No workouts found in the requested window.",
@@ -52,7 +52,8 @@ def recent_workouts(service: HevyService, days: int = 7) -> str:
             )
             durations.append(duration_minutes)
 
-        description = str(workout.get("description", "")).strip()
+        raw_description = workout.get("description", "")
+        description = raw_description.strip() if isinstance(raw_description, str) else ""
         summaries: list[str] = []
         for exercise in workout.get("exercises", []):
             if not isinstance(exercise, dict):
@@ -76,7 +77,8 @@ def recent_workouts(service: HevyService, days: int = 7) -> str:
                 reverse=True,
             )
             if ranked:
-                exercise_notes = str(exercise.get("notes", "")).strip()
+                raw_notes = exercise.get("notes", "")
+                exercise_notes = raw_notes.strip() if isinstance(raw_notes, str) else ""
                 set_text = f"{title}: {', '.join(format_set(row) for row in ranked[:2])}"
                 if exercise_notes:
                     set_text += f" [{exercise_notes}]"

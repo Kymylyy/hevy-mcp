@@ -61,3 +61,46 @@ def test_rank_templates_uses_cache_on_repeated_query() -> None:
 
     assert first == second
     assert client.request_count == 1
+
+
+def test_load_workout_descriptions_since_extends_cache_window() -> None:
+    now = datetime.fromisoformat("2026-03-04T12:00:00+00:00")
+
+    class WindowedClient:
+        def __init__(self) -> None:
+            self.request_count = 0
+
+        def paginate(
+            self,
+            path: str,
+            key: str,
+            page_size: int,
+            params: Any = None,
+        ) -> list[dict[str, Any]]:
+            return []
+
+        def get_exercise_history(self, _template_id: str) -> list[dict[str, Any]]:
+            return []
+
+        def get_workouts_since(self, start_time: datetime) -> list[dict[str, Any]]:
+            self.request_count += 1
+            if start_time >= datetime.fromisoformat("2026-02-25T12:00:00+00:00"):
+                return [{"id": "new", "description": "New Gym"}]
+            return [
+                {"id": "new", "description": "New Gym"},
+                {"id": "old", "description": "Old Gym"},
+            ]
+
+        def get_routine_folders(self) -> list[dict[str, Any]]:
+            return []
+
+    service = HevyService(client=WindowedClient())
+
+    service.load_workout_descriptions_since(datetime.fromisoformat("2026-02-25T12:00:00+00:00"))
+    assert service.get_workout_description("old") == ""
+
+    service.load_workout_descriptions_since(now)
+    assert service.get_workout_description("old") == ""
+
+    service.load_workout_descriptions_since(datetime.fromisoformat("2025-12-10T12:00:00+00:00"))
+    assert service.get_workout_description("old") == "Old Gym"

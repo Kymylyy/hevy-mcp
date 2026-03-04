@@ -58,6 +58,8 @@ def exercise_progression(service: HevyService, name: str, weeks: int = 12) -> st
             "Increase weeks or choose another exercise.",
         )
 
+    service.load_workout_descriptions_since(start)
+
     sessions: dict[str, dict[str, Any]] = {}
     for row in filtered:
         workout_id = str(row.get("workout_id", "unknown-workout"))
@@ -66,6 +68,7 @@ def exercise_progression(service: HevyService, name: str, weeks: int = 12) -> st
             {
                 "title": row.get("workout_title", "Workout"),
                 "start": parse_iso_datetime(str(row.get("workout_start_time"))),
+                "workout_id": workout_id,
                 "sets": [],
             },
         )
@@ -73,7 +76,7 @@ def exercise_progression(service: HevyService, name: str, weeks: int = 12) -> st
 
     ordered = sorted(sessions.values(), key=lambda item: item["start"])
     session_best_e1rm: list[float] = []
-    weekly_best: dict[str, float] = {}
+    weekly_best: dict[str, tuple[float, str]] = {}
     best_row: dict[str, Any] | None = None
     best_score = -1.0
     pr_load = 0.0
@@ -102,7 +105,9 @@ def exercise_progression(service: HevyService, name: str, weeks: int = 12) -> st
         if local_best > 0:
             session_best_e1rm.append(local_best)
             week_key = str(session["start"].date() - timedelta(days=session["start"].weekday()))
-            weekly_best[week_key] = max(local_best, weekly_best.get(week_key, 0.0))
+            prev = weekly_best.get(week_key)
+            if prev is None or local_best > prev[0]:
+                weekly_best[week_key] = (local_best, session["workout_id"])
 
     trend_label, trend_change = classify_trend(session_best_e1rm)
     trend_suffix = f" ({format_number(trend_change, 1)}%)" if trend_change is not None else ""
@@ -124,7 +129,10 @@ def exercise_progression(service: HevyService, name: str, weeks: int = 12) -> st
         "- Weekly best e1RM:",
     ]
     for week in sorted(weekly_best.keys())[-8:]:
-        details.append(f"- {week}: {format_number(weekly_best[week])}kg")
+        e1rm_val, wid = weekly_best[week]
+        desc = service.get_workout_description(wid)
+        suffix = f" ({desc})" if desc else ""
+        details.append(f"- {week}: {format_number(e1rm_val)}kg{suffix}")
 
     notes = [
         "- e1RM formula: weight * (1 + reps/30).",

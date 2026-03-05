@@ -8,14 +8,13 @@ from ..errors import NoDataError
 from ..response import render_response
 from ..service import HevyService
 from ..utils import (
-    estimate_e1rm,
     format_number,
-    format_set,
     is_working_set,
     parse_iso_datetime,
     utc_now,
 )
 from ..validation import validate_days
+from ._shared import summarize_set_scheme
 
 
 def recent_workouts(service: HevyService, days: int = 7) -> str:
@@ -62,30 +61,32 @@ def recent_workouts(service: HevyService, days: int = 7) -> str:
             sets = exercise.get("sets", [])
             if not isinstance(sets, list):
                 continue
-            candidates = [
-                row
-                for row in sets
-                if isinstance(row, dict) and is_working_set(row.get("type"))
-            ]
-            ranked = sorted(
-                candidates,
-                key=lambda row: (
-                    estimate_e1rm(row.get("weight_kg"), row.get("reps")) or 0.0,
-                    float(row.get("weight_kg") or 0.0),
-                    float(row.get("reps") or 0.0),
-                ),
-                reverse=True,
-            )
-            if ranked:
-                raw_notes = exercise.get("notes", "")
-                exercise_notes = raw_notes.strip() if isinstance(raw_notes, str) else ""
-                set_text = f"{title}: {', '.join(format_set(row) for row in ranked[:2])}"
-                if exercise_notes:
-                    set_text += f" [{exercise_notes}]"
-                summaries.append(set_text)
+            set_rows = [row for row in sets if isinstance(row, dict)]
+            if not set_rows:
+                continue
+            warmup_count = 0
+            working_count = 0
+            failure_count = 0
+            for row in set_rows:
+                set_type = row.get("type")
+                if set_type == "warmup":
+                    warmup_count += 1
+                elif is_working_set(set_type):
+                    working_count += 1
+                    if set_type == "failure":
+                        failure_count += 1
+            counts = f"{len(set_rows)} set(s) | warmup {warmup_count}, working {working_count}"
+            if failure_count:
+                counts += f" (failure {failure_count})"
+            set_text = f"{title}: {counts} | {summarize_set_scheme(set_rows)}"
+            raw_notes = exercise.get("notes", "")
+            exercise_notes = raw_notes.strip() if isinstance(raw_notes, str) else ""
+            if exercise_notes:
+                set_text += f" [{exercise_notes}]"
+            summaries.append(set_text)
 
         if not summaries:
-            summaries.append("no working sets logged")
+            summaries.append("no sets logged")
 
         workout_label = workout.get("title", "Workout")
         if description:
@@ -100,7 +101,10 @@ def recent_workouts(service: HevyService, days: int = 7) -> str:
         f"{len(ordered)} workout(s) in last {requested_days} day(s). "
         f"Average duration: {format_number(avg_duration)} minutes."
     )
-    notes = ["- Warmup sets are excluded from key-set summaries."]
+    notes = [
+        "- All logged sets are included in summaries.",
+        "- Working sets include: normal, failure, dropset (failure is counted as working).",
+    ]
     if len(ordered) > MAX_WORKOUT_ROWS_OUTPUT:
         notes.append(f"- Output truncated to {MAX_WORKOUT_ROWS_OUTPUT} workouts.")
     return render_response(summary, f"{start.date()} to {now.date()}", details, notes)

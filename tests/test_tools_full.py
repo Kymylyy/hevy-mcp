@@ -167,6 +167,8 @@ def test_recent_workouts_success() -> None:
                     "sets": [
                         {"type": "warmup", "weight_kg": 50, "reps": 8},
                         {"type": "normal", "weight_kg": 100, "reps": 5},
+                        {"type": "normal", "weight_kg": 100, "reps": 5},
+                        {"type": "failure", "weight_kg": 105, "reps": 5},
                     ],
                 }
             ],
@@ -178,6 +180,10 @@ def test_recent_workouts_success() -> None:
 
     assert "Average duration" in output
     assert "Bench Press" in output
+    assert "4 set(s) | warmup 1, working 3 (failure 1)" in output
+    assert "1x 50kg x 8 [warmup]" in output
+    assert "2x 100kg x 5" in output
+    assert "1x 105kg x 5+ [failure]" in output
 
 
 def test_recent_workouts_ignores_none_description_and_notes() -> None:

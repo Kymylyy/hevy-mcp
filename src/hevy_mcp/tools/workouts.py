@@ -93,7 +93,7 @@ def recent_workouts(service: HevyService, days: int = 7) -> str:
             workout_label = f"{workout_label} ({description})"
         details.append(
             f"- {start_at.date()} | {workout_label} | "
-            f"{format_number(duration_minutes)} min | {'; '.join(summaries[:6])}"
+            f"{format_number(duration_minutes)} min | {'; '.join(summaries)}"
         )
 
     avg_duration = mean(durations) if durations else 0.0

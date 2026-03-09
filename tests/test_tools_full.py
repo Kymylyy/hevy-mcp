@@ -213,6 +213,33 @@ def test_recent_workouts_ignores_none_description_and_notes() -> None:
     assert "[None]" not in output
 
 
+def test_recent_workouts_includes_exercises_beyond_sixth_entry() -> None:
+    exercises = [
+        {
+            "title": f"Exercise {index}",
+            "sets": [
+                {"type": "normal", "weight_kg": index * 10, "reps": index},
+            ],
+        }
+        for index in range(1, 8)
+    ]
+    workouts = [
+        {
+            "title": "Full Body",
+            "start_time": _iso_days_ago(1, minutes=45),
+            "end_time": _iso_days_ago(1),
+            "exercises": exercises,
+        }
+    ]
+    service = HevyService(client=ToolClient(workouts=workouts))
+
+    output = recent_workouts(service, days=7)
+
+    assert "Exercise 6" in output
+    assert "Exercise 7" in output
+    assert "1x 70kg x 7" in output
+
+
 def test_recent_workouts_raises_when_empty() -> None:
     service = HevyService(client=ToolClient(workouts=[]))
 

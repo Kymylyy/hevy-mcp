@@ -14,6 +14,7 @@ from .tools import (
     recent_workouts,
     search_exercise,
     suggest_accessories,
+    top_exercises,
     training_log,
     weekly_volume,
 )
@@ -95,6 +96,16 @@ def create_mcp_server() -> Any:
     def tool_training_log(days: int = 30) -> str:
         service = get_service()
         return service.execute("training_log", lambda d: training_log(service, d), days)
+
+    @mcp.tool()
+    def tool_top_exercises(days: int = 30, limit: int = 5) -> str:
+        service = get_service()
+        return service.execute(
+            "top_exercises",
+            lambda d, n: top_exercises(service, d, n),
+            days,
+            limit,
+        )
 
     @mcp.tool()
     def tool_get_routines() -> str:

@@ -5,6 +5,7 @@ from .progression import exercise_progression
 from .routines import get_routines
 from .search import search_exercise
 from .volume import weekly_volume
+from .top_exercises import top_exercises
 from .workouts import recent_workouts
 
 __all__ = [
@@ -16,4 +17,5 @@ __all__ = [
     "suggest_accessories",
     "training_log",
     "get_routines",
+    "top_exercises",
 ]

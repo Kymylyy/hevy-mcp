@@ -15,6 +15,7 @@ volume distribution, fatigue signals, accessory suggestions, training logging, a
 - `fatigue_check()`
 - `suggest_accessories()`
 - `training_log(days=30)`
+- `top_exercises(days=30, limit=5)`
 - `get_routines()`
 
 All tools return markdown with a stable section contract:
@@ -67,6 +68,7 @@ python3 run_hevy_mcp.py
 - Input guards:
   - `days`: `1..365`
   - `weeks`: `1..52`
+  - `limit`: `≥ 1`
   - `name`: minimum 2 characters
 - Fuzzy matching uses `difflib` (no external fuzzy dependency).
 

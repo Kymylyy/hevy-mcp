@@ -34,3 +34,11 @@ def validate_weeks(value: Any) -> int:
             "Choose a value between 1 and 52.",
         )
     return value
+
+
+def validate_limit(value: Any) -> int:
+    if not isinstance(value, int):
+        raise ValidationError("limit must be an integer.", "Use a positive integer.")
+    if value < 1:
+        raise ValidationError("limit must be at least 1.", "Choose a positive integer.")
+    return value

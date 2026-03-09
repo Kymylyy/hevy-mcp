@@ -240,6 +240,48 @@ def test_recent_workouts_includes_exercises_beyond_sixth_entry() -> None:
     assert "1x 70kg x 7" in output
 
 
+def test_recent_workouts_default_limit_is_30_and_reports_truncation() -> None:
+    workouts = [
+        {
+            "title": f"Workout {index}",
+            "start_time": _iso_days_ago(index + 1, minutes=45),
+            "end_time": _iso_days_ago(index + 1),
+            "exercises": [],
+        }
+        for index in range(31)
+    ]
+    service = HevyService(client=ToolClient(workouts=workouts))
+
+    output = recent_workouts(service, days=40)
+
+    assert "31 workout(s) in last 40 day(s)." in output
+    assert "Output truncated to 30 workouts." in output
+    assert "Workout 0" in output
+    assert "Workout 29" in output
+    assert "Workout 30" not in output
+
+
+def test_recent_workouts_limit_override_controls_output_size() -> None:
+    workouts = [
+        {
+            "title": f"Workout {index}",
+            "start_time": _iso_days_ago(index + 1, minutes=45),
+            "end_time": _iso_days_ago(index + 1),
+            "exercises": [],
+        }
+        for index in range(6)
+    ]
+    service = HevyService(client=ToolClient(workouts=workouts))
+
+    output = recent_workouts(service, days=10, limit=5)
+
+    assert "6 workout(s) in last 10 day(s)." in output
+    assert "Output truncated to 5 workouts." in output
+    assert "Workout 0" in output
+    assert "Workout 4" in output
+    assert "Workout 5" not in output
+
+
 def test_recent_workouts_raises_when_empty() -> None:
     service = HevyService(client=ToolClient(workouts=[]))
 
@@ -252,6 +294,13 @@ def test_recent_workouts_validates_days() -> None:
 
     with pytest.raises(ValidationError):
         recent_workouts(service, days=0)
+
+
+def test_recent_workouts_validates_limit() -> None:
+    service = HevyService(client=ToolClient())
+
+    with pytest.raises(ValidationError):
+        recent_workouts(service, days=7, limit=0)
 
 
 def test_fatigue_check_success() -> None:

@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import timedelta
 from statistics import mean
 
-from ..config import MAX_WORKOUT_ROWS_OUTPUT
+from ..config import DEFAULT_RECENT_WORKOUTS_LIMIT
 from ..errors import NoDataError
 from ..response import render_response
 from ..service import HevyService
@@ -13,12 +13,17 @@ from ..utils import (
     parse_iso_datetime,
     utc_now,
 )
-from ..validation import validate_days
+from ..validation import validate_days, validate_limit
 from ._shared import summarize_set_scheme
 
 
-def recent_workouts(service: HevyService, days: int = 7) -> str:
+def recent_workouts(
+    service: HevyService,
+    days: int = 7,
+    limit: int = DEFAULT_RECENT_WORKOUTS_LIMIT,
+) -> str:
     requested_days = validate_days(days)
+    requested_limit = validate_limit(limit)
     now = utc_now()
     start = now - timedelta(days=requested_days)
     workouts = service.client.get_workouts_since(start)
@@ -37,7 +42,7 @@ def recent_workouts(service: HevyService, days: int = 7) -> str:
     durations: list[float] = []
     details: list[str] = []
 
-    for workout in ordered[:MAX_WORKOUT_ROWS_OUTPUT]:
+    for workout in ordered[:requested_limit]:
         start_raw = workout.get("start_time")
         if not isinstance(start_raw, str):
             continue
@@ -105,6 +110,6 @@ def recent_workouts(service: HevyService, days: int = 7) -> str:
         "- All logged sets are included in summaries.",
         "- Working sets include: normal, failure, dropset (failure is counted as working).",
     ]
-    if len(ordered) > MAX_WORKOUT_ROWS_OUTPUT:
-        notes.append(f"- Output truncated to {MAX_WORKOUT_ROWS_OUTPUT} workouts.")
+    if len(ordered) > requested_limit:
+        notes.append(f"- Output truncated to {requested_limit} workouts.")
     return render_response(summary, f"{start.date()} to {now.date()}", details, notes)

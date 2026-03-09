@@ -10,7 +10,7 @@ volume distribution, fatigue signals, accessory suggestions, training logging, a
 
 - `search_exercise(name)`
 - `exercise_progression(name, weeks=12)`
-- `recent_workouts(days=7)`
+- `recent_workouts(days=7, limit=30)`
 - `weekly_volume(weeks=4)`
 - `fatigue_check()`
 - `suggest_accessories()`

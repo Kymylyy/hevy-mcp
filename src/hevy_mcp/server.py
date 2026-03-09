@@ -4,7 +4,7 @@ import os
 from typing import Any
 
 from .client import HevyApiClient
-from .config import BASE_URL
+from .config import BASE_URL, DEFAULT_RECENT_WORKOUTS_LIMIT
 from .errors import UpstreamAuthError
 from .service import HevyService
 from .tools import (
@@ -73,9 +73,14 @@ def create_mcp_server() -> Any:
         )
 
     @mcp.tool()
-    def tool_recent_workouts(days: int = 7) -> str:
+    def tool_recent_workouts(days: int = 7, limit: int = DEFAULT_RECENT_WORKOUTS_LIMIT) -> str:
         service = get_service()
-        return service.execute("recent_workouts", lambda d: recent_workouts(service, d), days)
+        return service.execute(
+            "recent_workouts",
+            lambda d, n: recent_workouts(service, d, n),
+            days,
+            limit,
+        )
 
     @mcp.tool()
     def tool_weekly_volume(weeks: int = 4) -> str:

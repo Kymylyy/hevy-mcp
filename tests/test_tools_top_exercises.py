@@ -112,7 +112,10 @@ def test_limit_restricts_output() -> None:
 
     assert "Top 2 exercise(s)" in output
     # Only 2 entries in details
-    detail_lines = [line for line in output.split("\n") if line.startswith("- ") and "session(s)" in line]
+    detail_lines = [
+        line for line in output.split("\n")
+        if line.startswith("- ") and "session(s)" in line
+    ]
     assert len(detail_lines) == 2
 
 

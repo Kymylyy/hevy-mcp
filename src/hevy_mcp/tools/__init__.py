@@ -4,8 +4,8 @@ from .logging import training_log
 from .progression import exercise_progression
 from .routines import get_routines
 from .search import search_exercise
-from .volume import weekly_volume
 from .top_exercises import top_exercises
+from .volume import weekly_volume
 from .workouts import recent_workouts
 
 __all__ = [

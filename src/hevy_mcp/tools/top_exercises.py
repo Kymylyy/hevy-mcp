@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import timedelta
-from typing import Any
 
 from ..errors import NoDataError
 from ..response import render_response
@@ -81,7 +80,8 @@ def top_exercises(service: HevyService, days: int = 30, limit: int = 5) -> str:
         name = title_by_template.get(tid, tid)
         session_count = len(sessions_by_template[tid])
         sets_count = working_sets_by_template[tid]
-        details.append(f"- {rank}. {name} — {session_count} session(s), {sets_count} working set(s)")
+        line = f"- {rank}. {name} — {session_count} session(s), {sets_count} working set(s)"
+        details.append(line)
 
     summary = (
         f"Top {len(top)} exercise(s) by session frequency over {requested_days} day(s)."

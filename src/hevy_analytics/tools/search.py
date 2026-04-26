@@ -1,14 +1,16 @@
 from __future__ import annotations
 
+from typing import Any
+
 from ..config import SEARCH_HISTORY_LOOKBACK_DAYS, SEARCH_MATCH_CANDIDATES
 from ..errors import NotFoundError
-from ..response import render_response
+from ..response import ToolResult, build_result
 from ..service import HevyService
 from ..validation import validate_name
 from ._shared import rerank_matches_with_history
 
 
-def search_exercise(service: HevyService, name: str) -> str:
+def search_exercise(service: HevyService, name: str) -> ToolResult:
     query = validate_name(name)
     candidates = service.rank_templates(query, limit=SEARCH_MATCH_CANDIDATES)
     usage = service.load_recent_template_usage(SEARCH_HISTORY_LOOKBACK_DAYS)
@@ -50,4 +52,25 @@ def search_exercise(service: HevyService, name: str) -> str:
             f"({SEARCH_HISTORY_LOOKBACK_DAYS}d) -> text similarity (difflib)."
         )
     ]
-    return render_response(summary, "Exercise catalog snapshot (cached up to 12h).", details, notes)
+    data: dict[str, Any] = {
+        "query": query,
+        "matches": [
+            {
+                "id": str(match.get("id", "")),
+                "title": str(match.get("title", "")),
+                "type": match.get("type"),
+                "primary_muscle_group": match.get("primary_muscle_group"),
+                "equipment": match.get("equipment"),
+                "recent_sets": usage.get(str(match.get("id", "")), 0),
+                "is_custom": bool(match.get("is_custom")),
+            }
+            for match in matches
+        ],
+    }
+    return build_result(
+        summary,
+        "Exercise catalog snapshot (cached up to 12h).",
+        details,
+        notes,
+        data=data,
+    )

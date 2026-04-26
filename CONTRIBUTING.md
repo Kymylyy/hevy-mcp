@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for your interest in `hevy-mcp`.
+Thanks for your interest in `hevy-analytics`.
 
 ## Development setup
 
@@ -32,6 +32,7 @@ python3 -m pytest
 - Include tests for behavior changes.
 - Update docs when behavior or interfaces change.
 - Keep MCP tool names stable unless a breaking change is intentionally documented.
+- Keep CLI JSON output stable once shipped.
 
 ## Commit style
 

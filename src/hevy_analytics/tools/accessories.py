@@ -5,12 +5,12 @@ from datetime import timedelta
 from typing import Any
 
 from ..errors import NoDataError
-from ..response import render_response
+from ..response import ToolResult, build_result
 from ..service import HevyService
 from ..utils import is_working_set, parse_iso_datetime, utc_now
 
 
-def suggest_accessories(service: HevyService) -> str:
+def suggest_accessories(service: HevyService) -> ToolResult:
     now = utc_now()
     baseline_start = now - timedelta(weeks=4)
     recent_start = now - timedelta(days=10)
@@ -122,4 +122,22 @@ def suggest_accessories(service: HevyService) -> str:
         "- Suggestions prioritize undertrained muscles and avoid heavily hit muscles in last 48h.",
         "- Keep accessory work low-fatigue and technique-focused.",
     ]
-    return render_response(summary, f"Last 4 weeks up to {now.date()}", details, notes)
+    data: dict[str, Any] = {
+        "window": {
+            "start_date": str(baseline_start.date()),
+            "end_date": str(now.date()),
+        },
+        "priority_muscles": priority,
+        "heavily_hit_muscles": sorted(heavily),
+        "suggestions": [
+            {
+                "title": title,
+                "muscle": muscle,
+                "sets": "2-4",
+                "reps": "8-20",
+                "rpe": "6-8",
+            }
+            for title, muscle in suggestions
+        ],
+    }
+    return build_result(summary, f"Last 4 weeks up to {now.date()}", details, notes, data=data)

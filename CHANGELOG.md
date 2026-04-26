@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+### Added
+
+- Shared structured analytics result contract beneath the MCP renderer.
+- `hevy-cli` for automation with `json` and `markdown` output modes.
+
+### Changed
+
+- Repositioned the package from MCP-only branding toward a shared `MCP + CLI` analytics core.
+
 ## 1.0.0 - 2026-02-23
 
 ### Added

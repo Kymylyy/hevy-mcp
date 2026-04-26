@@ -5,12 +5,12 @@ from typing import Any
 
 from ..config import MAX_ROUTINE_EXERCISES_OUTPUT
 from ..errors import NoDataError
-from ..response import render_response
+from ..response import ToolResult, build_result
 from ..service import HevyService
 from ._shared import summarize_set_scheme
 
 
-def get_routines(service: HevyService) -> str:
+def get_routines(service: HevyService) -> ToolResult:
     routines = service.client.paginate("/routines", "routines", page_size=10)
     folders = service.client.get_routine_folders()
     if not routines:
@@ -31,14 +31,17 @@ def get_routines(service: HevyService) -> str:
         grouped[folder_names.get(str(folder_id), "Unfiled")].append(routine)
 
     details: list[str] = []
+    folder_data: list[dict[str, Any]] = []
     for folder_name in sorted(grouped.keys()):
         details.append(f"- {folder_name}:")
+        routines_data: list[dict[str, Any]] = []
         for routine in sorted(grouped[folder_name], key=lambda row: str(row.get("title", ""))):
             title = str(routine.get("title", "Untitled Routine"))
             exercises = routine.get("exercises", [])
             total_exercises = 0
             exercise_lines: list[str] = []
             planned_sets = 0
+            structured_exercises: list[dict[str, Any]] = []
             if isinstance(exercises, list):
                 shown = 0
                 for exercise in exercises:
@@ -61,6 +64,12 @@ def get_routines(service: HevyService) -> str:
                     elif isinstance(sets_count, int):
                         planned_sets += sets_count
                         set_plan = f"{sets_count} set(s) planned"
+                    structured_exercises.append(
+                        {
+                            "title": exercise_title,
+                            "set_plan": set_plan,
+                        }
+                    )
                     if shown < MAX_ROUTINE_EXERCISES_OUTPUT:
                         exercise_lines.append(f"  - {exercise_title}: {set_plan}")
                         shown += 1
@@ -76,7 +85,22 @@ def get_routines(service: HevyService) -> str:
                 details.extend(exercise_lines)
             else:
                 details.append("  - no exercises")
+            routines_data.append(
+                {
+                    "id": str(routine.get("id", "")) or None,
+                    "title": title,
+                    "total_exercises": total_exercises,
+                    "planned_sets": planned_sets,
+                    "exercises": structured_exercises,
+                }
+            )
+        folder_data.append({"name": folder_name, "routines": routines_data})
 
     summary = f"{len(routines)} routine(s) across {max(len(folder_names), 1)} folder(s)."
     notes = ["- Routines without folder mapping are listed under Unfiled."]
-    return render_response(summary, "Current routine catalog", details, notes)
+    data = {
+        "routine_count": len(routines),
+        "folder_count": max(len(folder_names), 1),
+        "folders": folder_data,
+    }
+    return build_result(summary, "Current routine catalog", details, notes, data=data)

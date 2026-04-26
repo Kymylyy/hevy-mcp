@@ -6,10 +6,11 @@ from typing import Any
 
 import pytest
 
-from hevy_mcp.errors import NoDataError, ValidationError
-from hevy_mcp.service import HevyService
-from hevy_mcp.tools import top_exercises
-from hevy_mcp.utils import utc_now
+from hevy_analytics.errors import NoDataError, ValidationError
+from hevy_analytics.response import render_markdown
+from hevy_analytics.service import HevyService
+from hevy_analytics.tools import top_exercises
+from hevy_analytics.utils import utc_now
 
 
 class TopExercisesClient:
@@ -88,11 +89,13 @@ def test_ranks_by_session_frequency() -> None:
     ]
     service = HevyService(client=TopExercisesClient(workouts=workouts))
 
-    output = top_exercises(service, days=30, limit=5)
+    result = top_exercises(service, days=30, limit=5)
+    output = render_markdown(result)
 
     squat_pos = output.index("Squat")
     bench_pos = output.index("Bench Press")
     assert squat_pos < bench_pos
+    assert result.data["ranked"][0]["title"] == "Squat"
 
 
 def test_limit_restricts_output() -> None:
@@ -108,7 +111,8 @@ def test_limit_restricts_output() -> None:
     ]
     service = HevyService(client=TopExercisesClient(workouts=workouts))
 
-    output = top_exercises(service, days=30, limit=2)
+    result = top_exercises(service, days=30, limit=2)
+    output = render_markdown(result)
 
     assert "Top 2 exercise(s)" in output
     # Only 2 entries in details
@@ -127,7 +131,7 @@ def test_uses_canonical_template_titles() -> None:
     ]
     service = HevyService(client=TopExercisesClient(templates=templates, workouts=workouts))
 
-    output = top_exercises(service, days=30, limit=5)
+    output = render_markdown(top_exercises(service, days=30, limit=5))
 
     assert "Barbell Squat (Canonical)" in output
     assert "Squat (workout title)" not in output
@@ -143,7 +147,7 @@ def test_tiebreaker_by_working_sets() -> None:
     ]
     service = HevyService(client=TopExercisesClient(workouts=workouts))
 
-    output = top_exercises(service, days=30, limit=5)
+    output = render_markdown(top_exercises(service, days=30, limit=5))
 
     a_pos = output.index("ExA")
     b_pos = output.index("ExB")

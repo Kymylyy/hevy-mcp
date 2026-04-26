@@ -5,7 +5,7 @@ from typing import Any
 
 from ..analytics import classify_trend
 from ..errors import NoDataError, NotFoundError
-from ..response import render_response
+from ..response import ToolResult, build_result
 from ..service import HevyService
 from ..utils import (
     estimate_e1rm,
@@ -18,7 +18,7 @@ from ..utils import (
 from ..validation import validate_name, validate_weeks
 
 
-def exercise_progression(service: HevyService, name: str, weeks: int = 12) -> str:
+def exercise_progression(service: HevyService, name: str, weeks: int = 12) -> ToolResult:
     query = validate_name(name)
     requested_weeks = validate_weeks(weeks)
     matches = service.rank_templates(query)
@@ -138,4 +138,37 @@ def exercise_progression(service: HevyService, name: str, weeks: int = 12) -> st
         "- e1RM formula: weight * (1 + reps/30).",
         "- Only working sets are included (normal, failure, dropset).",
     ]
-    return render_response(summary, window, details, notes)
+    data: dict[str, Any] = {
+        "query": query,
+        "exercise": {
+            "id": template_id,
+            "title": str(selected.get("title", query)),
+        },
+        "window": {
+            "weeks": requested_weeks,
+            "start_date": str(start.date()),
+            "end_date": str(now.date()),
+        },
+        "session_count": len(ordered),
+        "working_set_count": len(filtered),
+        "trend": {
+            "label": trend_label,
+            "change_pct": trend_change,
+        },
+        "personal_records": {
+            "load_kg": pr_load if pr_load else None,
+            "reps": pr_reps if pr_reps else None,
+            "e1rm_kg": pr_e1rm if pr_e1rm else None,
+        },
+        "best_set": best_row,
+        "weekly_best_e1rm": [
+            {
+                "week_start": week,
+                "e1rm_kg": e1rm_val,
+                "workout_id": wid,
+                "description": service.get_workout_description(wid) or None,
+            }
+            for week, (e1rm_val, wid) in sorted(weekly_best.items())[-8:]
+        ],
+    }
+    return build_result(summary, window, details, notes, data=data)

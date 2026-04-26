@@ -1,4 +1,4 @@
-from hevy_mcp.server import main
+from hevy_analytics.mcp_server import main
 
 if __name__ == "__main__":
     main()

@@ -3,15 +3,16 @@ from __future__ import annotations
 from collections import defaultdict
 from datetime import timedelta
 from statistics import mean, median
+from typing import Any
 
 from ..analytics import fatigue_risk_level
 from ..errors import NoDataError
-from ..response import render_response
+from ..response import ToolResult, build_result
 from ..service import HevyService
 from ..utils import estimate_e1rm, format_number, is_working_set, parse_iso_datetime, utc_now
 
 
-def fatigue_check(service: HevyService) -> str:
+def fatigue_check(service: HevyService) -> ToolResult:
     now = utc_now()
     start = now - timedelta(days=21)
     workouts = service.client.get_workouts_since(start)
@@ -138,9 +139,27 @@ def fatigue_check(service: HevyService) -> str:
     else:
         notes.append("- Current fatigue signal looks manageable.")
 
-    return render_response(
+    data: dict[str, Any] = {
+        "window": {
+            "start_date": str(start.date()),
+            "end_date": str(now.date()),
+        },
+        "risk": risk,
+        "confidence": confidence,
+        "signals": signals,
+        "affected_lifts": sorted(set(affected)),
+        "recent_failure_ratio": recent_ratio,
+        "prior_failure_ratio": prior_ratio,
+        "recent_working_sets": recent_working,
+        "prior_working_sets": prior_working,
+        "recent_failure_sets": recent_failure,
+        "prior_failure_sets": prior_failure,
+        "workout_count": len(sorted_workouts),
+    }
+    return build_result(
         f"Fatigue risk level: {risk}.",
         f"{start.date()} to {now.date()}",
         details,
         notes,
+        data=data,
     )

@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from datetime import timedelta
 from statistics import mean
+from typing import Any
 
 from ..config import DEFAULT_RECENT_WORKOUTS_LIMIT
 from ..errors import NoDataError
-from ..response import render_response
+from ..response import ToolResult, build_result
 from ..service import HevyService
 from ..utils import (
     format_number,
@@ -21,7 +22,7 @@ def recent_workouts(
     service: HevyService,
     days: int = 7,
     limit: int = DEFAULT_RECENT_WORKOUTS_LIMIT,
-) -> str:
+) -> ToolResult:
     requested_days = validate_days(days)
     requested_limit = validate_limit(limit)
     now = utc_now()
@@ -41,6 +42,7 @@ def recent_workouts(
     )
     durations: list[float] = []
     details: list[str] = []
+    data_workouts: list[dict[str, Any]] = []
 
     for workout in ordered[:requested_limit]:
         start_raw = workout.get("start_time")
@@ -59,6 +61,7 @@ def recent_workouts(
         raw_description = workout.get("description", "")
         description = raw_description.strip() if isinstance(raw_description, str) else ""
         summaries: list[str] = []
+        data_exercises: list[dict[str, Any]] = []
         for exercise in workout.get("exercises", []):
             if not isinstance(exercise, dict):
                 continue
@@ -89,6 +92,17 @@ def recent_workouts(
             if exercise_notes:
                 set_text += f" [{exercise_notes}]"
             summaries.append(set_text)
+            data_exercises.append(
+                {
+                    "title": title,
+                    "notes": exercise_notes or None,
+                    "set_count": len(set_rows),
+                    "warmup_count": warmup_count,
+                    "working_count": working_count,
+                    "failure_count": failure_count,
+                    "set_scheme": summarize_set_scheme(set_rows),
+                }
+            )
 
         if not summaries:
             summaries.append("no sets logged")
@@ -99,6 +113,18 @@ def recent_workouts(
         details.append(
             f"- {start_at.date()} | {workout_label} | "
             f"{format_number(duration_minutes)} min | {'; '.join(summaries)}"
+        )
+        data_workouts.append(
+            {
+                "id": str(workout.get("id", "")) or None,
+                "title": str(workout.get("title", "Workout")),
+                "description": description or None,
+                "start_time": start_raw,
+                "end_time": end_raw if isinstance(end_raw, str) else None,
+                "date": str(start_at.date()),
+                "duration_minutes": duration_minutes,
+                "exercises": data_exercises,
+            }
         )
 
     avg_duration = mean(durations) if durations else 0.0
@@ -112,4 +138,16 @@ def recent_workouts(
     ]
     if len(ordered) > requested_limit:
         notes.append(f"- Output truncated to {requested_limit} workouts.")
-    return render_response(summary, f"{start.date()} to {now.date()}", details, notes)
+    data = {
+        "window": {
+            "days": requested_days,
+            "start_date": str(start.date()),
+            "end_date": str(now.date()),
+        },
+        "total_workouts": len(ordered),
+        "returned_workouts": len(data_workouts),
+        "average_duration_minutes": avg_duration,
+        "truncated": len(ordered) > requested_limit,
+        "workouts": data_workouts,
+    }
+    return build_result(summary, f"{start.date()} to {now.date()}", details, notes, data=data)

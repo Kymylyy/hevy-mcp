@@ -5,9 +5,10 @@ from typing import Any
 
 import pytest
 
-from hevy_mcp.errors import NoDataError, ValidationError
-from hevy_mcp.service import HevyService
-from hevy_mcp.tools import weekly_volume
+from hevy_analytics.errors import NoDataError, ValidationError
+from hevy_analytics.response import render_markdown
+from hevy_analytics.service import HevyService
+from hevy_analytics.tools import weekly_volume
 
 
 class VolumeClient:
@@ -70,11 +71,13 @@ class VolumeClient:
 def test_weekly_volume_outputs_balance_ratios() -> None:
     service = HevyService(client=VolumeClient())
 
-    output = weekly_volume(service, weeks=4)
+    result = weekly_volume(service, weeks=4)
+    output = render_markdown(result)
     assert "## Summary" in output
     assert "Push/Pull ratio" in output
     assert "Quad/Hamstring ratio" in output
     assert "Upper/Lower ratio" in output
+    assert result.data is not None
 
 
 def test_weekly_volume_raises_when_no_working_sets() -> None:

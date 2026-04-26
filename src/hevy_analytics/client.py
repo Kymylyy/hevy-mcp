@@ -62,7 +62,7 @@ class HevyApiClient:
             if status in {401, 403}:
                 raise UpstreamAuthError(
                     "Hevy API authentication failed.",
-                    "Verify HEVY_API_KEY and restart the MCP server.",
+                    "Verify HEVY_API_KEY and retry.",
                 )
 
             if status == 404:

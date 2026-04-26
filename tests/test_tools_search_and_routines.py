@@ -3,8 +3,9 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from hevy_mcp.service import HevyService
-from hevy_mcp.tools import get_routines, search_exercise
+from hevy_analytics.response import render_markdown
+from hevy_analytics.service import HevyService
+from hevy_analytics.tools import get_routines, search_exercise
 
 
 class SearchAndRoutineClient:
@@ -75,7 +76,7 @@ def test_search_exercise_boosts_templates_from_recent_history() -> None:
     )
     service = HevyService(client=client)
 
-    output = search_exercise(service, "squat")
+    output = render_markdown(search_exercise(service, "squat"))
 
     assert output.find("Squat (Barbell)") < output.find("Squat Row")
     assert "recent user history boost" in output
@@ -121,7 +122,7 @@ def test_get_routines_includes_set_schemes_per_exercise() -> None:
     )
     service = HevyService(client=client)
 
-    output = get_routines(service)
+    output = render_markdown(get_routines(service))
 
     assert "Push Day (2 exercise(s), 6 planned sets)" in output
     assert "Bench Press: 2x 100kg x 5 (RIR 2, rest 180s), 1x 105kg x 5+ [failure]" in output

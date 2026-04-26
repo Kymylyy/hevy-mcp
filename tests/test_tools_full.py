@@ -6,9 +6,10 @@ from typing import Any
 
 import pytest
 
-from hevy_mcp.errors import NoDataError, NotFoundError, ValidationError
-from hevy_mcp.service import HevyService
-from hevy_mcp.tools import (
+from hevy_analytics.errors import NoDataError, NotFoundError, ValidationError
+from hevy_analytics.response import render_markdown
+from hevy_analytics.service import HevyService
+from hevy_analytics.tools import (
     exercise_progression,
     fatigue_check,
     get_routines,
@@ -17,7 +18,7 @@ from hevy_mcp.tools import (
     suggest_accessories,
     training_log,
 )
-from hevy_mcp.utils import utc_now
+from hevy_analytics.utils import utc_now
 
 
 class ToolClient:
@@ -121,11 +122,13 @@ def test_exercise_progression_success() -> None:
     }
     service = HevyService(client=ToolClient(templates=templates, history_by_template=history))
 
-    output = exercise_progression(service, "bench", weeks=8)
+    result = exercise_progression(service, "bench", weeks=8)
+    output = render_markdown(result)
 
     assert "trend:" in output
     assert "## Details" in output
     assert "Peak e1RM" in output
+    assert result.data["exercise"]["id"] == "T1"
 
 
 def test_exercise_progression_raises_no_data_when_no_working_sets() -> None:
@@ -176,7 +179,8 @@ def test_recent_workouts_success() -> None:
     ]
     service = HevyService(client=ToolClient(workouts=workouts))
 
-    output = recent_workouts(service, days=7)
+    result = recent_workouts(service, days=7)
+    output = render_markdown(result)
 
     assert "Average duration" in output
     assert "Bench Press" in output
@@ -184,6 +188,7 @@ def test_recent_workouts_success() -> None:
     assert "1x 50kg x 8 [warmup]" in output
     assert "2x 100kg x 5" in output
     assert "1x 105kg x 5+ [failure]" in output
+    assert result.data["workouts"][0]["exercises"][0]["failure_count"] == 1
 
 
 def test_recent_workouts_ignores_none_description_and_notes() -> None:
@@ -207,7 +212,7 @@ def test_recent_workouts_ignores_none_description_and_notes() -> None:
     ]
     service = HevyService(client=ToolClient(workouts=workouts))
 
-    output = recent_workouts(service, days=7)
+    output = render_markdown(recent_workouts(service, days=7))
 
     assert "(None)" not in output
     assert "[None]" not in output
@@ -233,7 +238,7 @@ def test_recent_workouts_includes_exercises_beyond_sixth_entry() -> None:
     ]
     service = HevyService(client=ToolClient(workouts=workouts))
 
-    output = recent_workouts(service, days=7)
+    output = render_markdown(recent_workouts(service, days=7))
 
     assert "Exercise 6" in output
     assert "Exercise 7" in output
@@ -252,13 +257,15 @@ def test_recent_workouts_default_limit_is_30_and_reports_truncation() -> None:
     ]
     service = HevyService(client=ToolClient(workouts=workouts))
 
-    output = recent_workouts(service, days=40)
+    result = recent_workouts(service, days=40)
+    output = render_markdown(result)
 
     assert "31 workout(s) in last 40 day(s)." in output
     assert "Output truncated to 30 workouts." in output
     assert "Workout 0" in output
     assert "Workout 29" in output
     assert "Workout 30" not in output
+    assert result.data["truncated"] is True
 
 
 def test_recent_workouts_limit_override_controls_output_size() -> None:
@@ -273,13 +280,15 @@ def test_recent_workouts_limit_override_controls_output_size() -> None:
     ]
     service = HevyService(client=ToolClient(workouts=workouts))
 
-    output = recent_workouts(service, days=10, limit=5)
+    result = recent_workouts(service, days=10, limit=5)
+    output = render_markdown(result)
 
     assert "6 workout(s) in last 10 day(s)." in output
     assert "Output truncated to 5 workouts." in output
     assert "Workout 0" in output
     assert "Workout 4" in output
     assert "Workout 5" not in output
+    assert result.data["returned_workouts"] == 5
 
 
 def test_recent_workouts_raises_when_empty() -> None:
@@ -338,10 +347,12 @@ def test_fatigue_check_success() -> None:
     ]
     service = HevyService(client=ToolClient(workouts=workouts))
 
-    output = fatigue_check(service)
+    result = fatigue_check(service)
+    output = render_markdown(result)
 
     assert "Fatigue risk level" in output
     assert "Triggered signals" in output
+    assert result.data["risk"] in {"low", "moderate", "high"}
 
 
 def test_fatigue_check_raises_when_empty() -> None:
@@ -380,9 +391,11 @@ def test_fatigue_check_can_report_no_signals() -> None:
     ]
     service = HevyService(client=ToolClient(workouts=workouts))
 
-    output = fatigue_check(service)
+    result = fatigue_check(service)
+    output = render_markdown(result)
 
     assert "Triggered signals: none" in output
+    assert result.data["signals"] == []
 
 
 def test_suggest_accessories_success() -> None:
@@ -415,10 +428,12 @@ def test_suggest_accessories_success() -> None:
     ]
     service = HevyService(client=ToolClient(templates=templates, workouts=workouts))
 
-    output = suggest_accessories(service)
+    result = suggest_accessories(service)
+    output = render_markdown(result)
 
     assert "Accessory priorities" in output
     assert "Lat Pulldown" in output
+    assert result.data["suggestions"][0]["title"] == "Lat Pulldown"
 
 
 def test_suggest_accessories_raises_when_no_workouts() -> None:
@@ -447,10 +462,12 @@ def test_training_log_success() -> None:
     ]
     service = HevyService(client=ToolClient(workouts=workouts))
 
-    output = training_log(service, days=30)
+    result = training_log(service, days=30)
+    output = render_markdown(result)
 
     assert "sessions/week" in output
     assert "Average gap" in output
+    assert result.data["session_count"] == 2
 
 
 def test_training_log_raises_when_empty() -> None:
@@ -479,7 +496,9 @@ def test_get_routines_truncates_exercise_rows() -> None:
     routines = [{"id": "r1", "title": "Long Routine", "exercises": exercises}]
     service = HevyService(client=ToolClient(routines=routines, folders=[]))
 
-    output = get_routines(service)
+    result = get_routines(service)
+    output = render_markdown(result)
 
     assert "... 3 more exercise(s)" in output
     assert "Unfiled" in output
+    assert result.data["folders"][0]["routines"][0]["total_exercises"] == 15

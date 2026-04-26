@@ -8,8 +8,8 @@ from typing import Any, Protocol, cast
 
 from .cache import TTLCache
 from .config import HISTORY_TTL_SECONDS, SEARCH_TTL_SECONDS, TEMPLATES_TTL_SECONDS
-from .errors import HevyMcpError, UpstreamServerError
-from .response import render_error
+from .errors import HevyAnalyticsError, NoDataError, UpstreamServerError
+from .response import ToolResult, ToolStatus, attach_meta, build_error_result
 from .telemetry import ToolEventLogger
 from .utils import normalize_text, utc_now
 from .validation import validate_days, validate_name, validate_weeks
@@ -48,24 +48,24 @@ class HevyService:
         self._event_logger = event_logger or ToolEventLogger()
         self.cache_hits = 0
 
-    def execute(self, tool_name: str, fn: Callable[..., str], *args: Any) -> str:
+    def execute(self, tool_name: str, fn: Callable[..., ToolResult], *args: Any) -> ToolResult:
         started = time.perf_counter()
         req_before = self.client.request_count
         self.cache_hits = 0
-        status = "ok"
+        status: ToolStatus = "ok"
 
         try:
-            return fn(*args)
-        except HevyMcpError as exc:
-            status = "error"
-            return render_error(exc)
+            result = fn(*args)
+        except HevyAnalyticsError as exc:
+            status = "no_data" if isinstance(exc, NoDataError) else "error"
+            result = build_error_result(exc, status=status)
         except Exception:
             status = "error"
-            return render_error(
+            result = build_error_result(
                 UpstreamServerError(
                     "Unexpected tool failure.",
                     "Retry. If this repeats, inspect server logs for stack traces.",
-                )
+                ),
             )
         finally:
             duration_ms = int((time.perf_counter() - started) * 1000)
@@ -77,6 +77,7 @@ class HevyService:
                 cache_hits=self.cache_hits,
                 result_status=status,
             )
+        return attach_meta(result, tool_name=tool_name)
 
     def load_templates(self) -> list[dict[str, Any]]:
         cached = self._templates_cache.get("all")

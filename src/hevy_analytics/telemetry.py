@@ -35,7 +35,7 @@ def _default_logger() -> logging.Logger:
     if _DEFAULT_LOGGER is not None:
         return _DEFAULT_LOGGER
 
-    logger = logging.getLogger("hevy_mcp.tool_events")
+    logger = logging.getLogger("hevy_analytics.tool_events")
     logger.setLevel(logging.INFO)
     logger.propagate = False
 

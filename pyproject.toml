@@ -3,16 +3,16 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "hevy-mcp"
+name = "hevy-analytics"
 version = "1.0.0"
-description = "Read-only MCP server for Hevy training analytics"
+description = "Shared Hevy analytics core with MCP and CLI adapters for automation"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
 authors = [
   { name = "Kymylyy" },
 ]
-keywords = ["mcp", "hevy", "fitness", "analytics", "training"]
+keywords = ["hevy", "analytics", "mcp", "cli", "fitness", "training"]
 classifiers = [
   "Development Status :: 5 - Production/Stable",
   "Intended Audience :: Developers",
@@ -41,7 +41,8 @@ dev = [
 ]
 
 [project.scripts]
-hevy-mcp = "hevy_mcp.server:main"
+hevy-mcp = "hevy_analytics.mcp_server:main"
+hevy-cli = "hevy_analytics.cli:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

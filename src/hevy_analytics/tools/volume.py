@@ -2,15 +2,16 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import timedelta
+from typing import Any
 
 from ..errors import NoDataError
-from ..response import render_response
+from ..response import ToolResult, build_result
 from ..service import HevyService
 from ..utils import format_number, is_working_set, parse_iso_datetime, utc_now
 from ..validation import validate_weeks
 
 
-def weekly_volume(service: HevyService, weeks: int = 4) -> str:
+def weekly_volume(service: HevyService, weeks: int = 4) -> ToolResult:
     requested_weeks = validate_weeks(weeks)
     now = utc_now()
     start = now - timedelta(weeks=requested_weeks)
@@ -113,4 +114,40 @@ def weekly_volume(service: HevyService, weeks: int = 4) -> str:
         "- Volume unit is working-set credit (primary 1.0, each secondary 0.5).",
         "- This is distribution-focused volume, not tonnage.",
     ]
-    return render_response(summary, f"{start.date()} to {now.date()}", details, notes)
+    data: dict[str, Any] = {
+        "window": {
+            "weeks": requested_weeks,
+            "start_date": str(start.date()),
+            "end_date": str(now.date()),
+        },
+        "working_set_count": working_set_count,
+        "weekly_average_credits": weekly_avg,
+        "largest_concentration": {
+            "muscle": sorted_muscles[0][0] if sorted_muscles else None,
+            "credits": sorted_muscles[0][1] if sorted_muscles else None,
+        },
+        "ratios": {
+            "push_pull": None if pull == 0 else push / pull,
+            "quad_hamstring": None if hamstrings == 0 else quads / hamstrings,
+            "upper_lower": None if lower == 0 else upper / lower,
+        },
+        "muscle_totals": [
+            {"muscle": muscle, "credits": credits}
+            for muscle, credits in sorted_muscles
+        ],
+        "weekly_credits": [
+            {
+                "week_start": week,
+                "muscles": [
+                    {"muscle": muscle, "credits": credits}
+                    for muscle, credits in sorted(
+                        weekly_credits[week].items(),
+                        key=lambda row: row[1],
+                        reverse=True,
+                    )
+                ],
+            }
+            for week in sorted(weekly_credits.keys())
+        ],
+    }
+    return build_result(summary, f"{start.date()} to {now.date()}", details, notes, data=data)

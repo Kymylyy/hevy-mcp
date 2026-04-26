@@ -2,15 +2,16 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import timedelta
+from typing import Any
 
 from ..errors import NoDataError
-from ..response import render_response
+from ..response import ToolResult, build_result
 from ..service import HevyService
 from ..utils import is_working_set, utc_now
 from ..validation import validate_days, validate_limit
 
 
-def top_exercises(service: HevyService, days: int = 30, limit: int = 5) -> str:
+def top_exercises(service: HevyService, days: int = 30, limit: int = 5) -> ToolResult:
     requested_days = validate_days(days)
     requested_limit = validate_limit(limit)
 
@@ -91,4 +92,21 @@ def top_exercises(service: HevyService, days: int = 30, limit: int = 5) -> str:
         "- Ranked by unique workout sessions, then working sets as tiebreaker.",
         "- Exercise names match tool_exercise_progression input.",
     ]
-    return render_response(summary, window, details, notes)
+    data: dict[str, Any] = {
+        "window": {
+            "days": requested_days,
+            "start_date": str(start.date()),
+            "end_date": str(now.date()),
+        },
+        "ranked": [
+            {
+                "rank": rank,
+                "template_id": tid,
+                "title": title_by_template.get(tid, tid),
+                "session_count": len(sessions_by_template[tid]),
+                "working_set_count": working_sets_by_template[tid],
+            }
+            for rank, tid in enumerate(top, 1)
+        ],
+    }
+    return build_result(summary, window, details, notes, data=data)

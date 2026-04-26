@@ -3,16 +3,17 @@ from __future__ import annotations
 from collections import Counter
 from datetime import timedelta
 from statistics import mean, median
+from typing import Any
 
 from ..errors import NoDataError
-from ..response import render_response
+from ..response import ToolResult, build_result
 from ..service import HevyService
 from ..utils import format_number, parse_iso_datetime, utc_now
 from ..validation import validate_days
 from ._shared import split_label
 
 
-def training_log(service: HevyService, days: int = 30) -> str:
+def training_log(service: HevyService, days: int = 30) -> ToolResult:
     requested_days = validate_days(days)
     now = utc_now()
     start = now - timedelta(days=requested_days)
@@ -47,4 +48,17 @@ def training_log(service: HevyService, days: int = 30) -> str:
         f"({format_number(sessions_per_week, 2)} sessions/week)."
     )
     notes = [f"- Split classifier fallback used on {fallback} workout title(s)."]
-    return render_response(summary, f"{start.date()} to {now.date()}", details, notes)
+    data: dict[str, Any] = {
+        "window": {
+            "days": requested_days,
+            "start_date": str(start.date()),
+            "end_date": str(now.date()),
+        },
+        "session_count": len(ordered),
+        "sessions_per_week": sessions_per_week,
+        "split_counts": dict(splits),
+        "average_gap_days": avg_gap,
+        "median_gap_days": med_gap,
+        "fallback_count": fallback,
+    }
+    return build_result(summary, f"{start.date()} to {now.date()}", details, notes, data=data)

@@ -1,4 +1,4 @@
-from hevy_mcp.analytics import classify_trend, fatigue_risk_level
+from hevy_analytics.analytics import classify_trend, fatigue_risk_level
 
 
 def test_classify_trend_improving() -> None:

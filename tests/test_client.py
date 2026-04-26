@@ -3,8 +3,8 @@ from __future__ import annotations
 import httpx
 import pytest
 
-from hevy_mcp.client import HevyApiClient
-from hevy_mcp.errors import (
+from hevy_analytics.client import HevyApiClient
+from hevy_analytics.errors import (
     NotFoundError,
     UpstreamAuthError,
     UpstreamRateLimitError,
